@@ -1,0 +1,74 @@
+Quickstart
+==========
+
+Installation
+------------
+
+* Install SQL Server Management Studio or manually install Microsoft Data Access
+  Components (MDAC).
+
+* Install ``django-mssql`` with your favorite Python package manager::
+
+    pip install django-mssql
+
+
+* Add the :setting:`DATABASES` configuration.
+
+    .. code-block:: django
+
+        DATABASES = {
+            'default': {
+                'NAME': 'my_database',
+                'ENGINE': 'sqlserver_ado',
+                'HOST': 'dbserver\\ss2008',
+                'USER': '',
+                'PASSWORD': '',
+            }
+        }
+
+    .. note::
+
+    	Although the project is named ``django-mssql`` the python module is
+    	named ``sqlserver_ado``.
+
+    	Do not include a ``django.db.backends.`` prefix. That is only for core
+    	backends that are included with Django, not 3\ :sup:`rd` party backends.
+
+Getting the code
+----------------
+
+The project code is hosted on `Bitbucket`_
+
+    .. code-block:: cmd
+
+        hg clone https://bitbucket.org/Manfre/django-mssql/
+
+Are you planning to contribute? See :ref:`contributing`.
+
+.. _`Bitbucket`: https://bitbucket.org/Manfre/django-mssql/
+
+Dependencies
+------------
+
+Django
+^^^^^^
+
+Django_ 1.6 and 1.7 are supported by the current release.
+
+Support for Django 1.5 requires `django-mssql v1.5`_
+
+.. _Django: http://www.djangoproject.com/
+.. _`django-mssql v1.5`: https://pypi.python.org/pypi/django-mssql/1.5
+
+Python
+^^^^^^
+
+This backend requires Python 2.6 or newer. Python 3.3+ support has been added
+and should be considered experimental.
+
+PyWin32
+^^^^^^^
+
+PyWin32_ build 212 or newer is required.
+
+.. _PyWin32: http://sourceforge.net/projects/pywin32/
