@@ -38,18 +38,19 @@ django-mssql 1.4 supports Django 1.4 and 1.5.
 
 Django Setup
 ------------
-     'default': {
-        'ENGINE': 'django_pytds',
-        'NAME': 'DBNAME',
-        'HOST': 'DBHOST',
-        'USER': 'USERNAME',
-        'PASSWORD': 'PASSWORD',
-     }
+.. code-block:: python
+	'default': {
+		'ENGINE': 'django_pytds',
+		'NAME': 'DBNAME',
+		'HOST': 'DBHOST',
+		'USER': 'USERNAME',
+		'PASSWORD': 'PASSWORD',
+	}
 
 Options include:
-        autocommit, True/False
-        use_mars:  True/False
-        readonly:  True/False
+	autocommit, True/False
+	use_mars:  True/False
+	readonly:  True/False
 
 Notes
 -----
