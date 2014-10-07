@@ -134,7 +134,6 @@ setup(
     zip_safe=False,
     install_requires=[
         "python-tds >=1.6",
-        "Django >= 1.6",
-        "bitarray"  
+        "Django >= 1.6"
     ],
 )
