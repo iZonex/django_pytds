@@ -32,8 +32,7 @@ Django Version
 
 I haven't tested much. This is still work in progress but it seems to work pretty fine so far. The original project django-mssql works on the following:
 
-	* Django 1.6
-	* Django 1.7 (schema migrations may not be fully supported)
+        * Django 1.8 (schema migrations may not be fully supported)
 
 
 django-mssql 1.4 supports Django 1.4 and 1.5. 
