@@ -7,7 +7,7 @@ import time
 import django
 from django.conf import settings
 from django.db import connections
-from django.db.backends.creation import BaseDatabaseCreation
+from django.db.backends.base.creation import BaseDatabaseCreation
 from django.utils import six
 from django.utils.functional import cached_property
 
@@ -22,7 +22,7 @@ except ImportError:
 IS_DJANGO_16 = django.VERSION[0] == 1 and django.VERSION[1] == 6
 
 try:
-    from django.db.backends.creation import NO_DB_ALIAS
+    from django.db.backends.base.creation import NO_DB_ALIAS
 except ImportError:
     NO_DB_ALIAS = '__no_db__'
 
@@ -75,8 +75,10 @@ class DatabaseCreation(BaseDatabaseCreation):
     def __init__(self, *args, **kwargs):
         if IS_DJANGO_16:
             # Django 1.6 expects the data type to contain the CHECK constraint
-            self.data_types['PositiveIntegerField'] = 'int CHECK ([%(column)s] >= 0)'
-            self.data_types['PositiveSmallIntegerField'] = 'smallint CHECK ([%(column)s] >= 0)'
+            self.data_types[
+                'PositiveIntegerField'] = 'int CHECK ([%(column)s] >= 0)'
+            self.data_types[
+                'PositiveSmallIntegerField'] = 'smallint CHECK ([%(column)s] >= 0)'
 
         super(DatabaseCreation, self).__init__(*args, **kwargs)
 
@@ -123,7 +125,8 @@ class DatabaseCreation(BaseDatabaseCreation):
             setattr(test_case, method_name, method)
 
     def create_test_db(self, *args, **kwargs):
-        self.mark_tests_as_expected_failure(self.connection.features.failing_tests)
+        self.mark_tests_as_expected_failure(
+            self.connection.features.failing_tests)
         super(DatabaseCreation, self).create_test_db(*args, **kwargs)
 
     def _create_test_db(self, verbosity=1, autoclobber=False):
@@ -133,10 +136,12 @@ class DatabaseCreation(BaseDatabaseCreation):
         if self._test_database_create(settings):
             try:
                 with use_master_connection(self):
-                    test_database_name = super(DatabaseCreation, self)._create_test_db(verbosity, autoclobber)
+                    test_database_name = super(
+                        DatabaseCreation, self)._create_test_db(verbosity, autoclobber)
             except Exception as e:
                 if 'Choose a different database name.' in str(e):
-                    six.print_('Database "%s" could not be created because it already exists.' % test_database_name)
+                    six.print_(
+                        'Database "%s" could not be created because it already exists.' % test_database_name)
                 else:
                     six.reraise(*sys.exc_info())
             self.install_regex_clr(test_database_name)
@@ -160,8 +165,10 @@ class DatabaseCreation(BaseDatabaseCreation):
         try:
             with self._nodb_connection.cursor() as cursor:
                 qn_db_name = self.connection.ops.quote_name(test_database_name)
-                # boot all other connections to the database, leaving only this connection
-                cursor.execute("ALTER DATABASE %s SET SINGLE_USER WITH ROLLBACK IMMEDIATE" % qn_db_name)
+                # boot all other connections to the database, leaving only this
+                # connection
+                cursor.execute(
+                    "ALTER DATABASE %s SET SINGLE_USER WITH ROLLBACK IMMEDIATE" % qn_db_name)
                 time.sleep(1)
                 # database is now clear to drop
                 cursor.execute("DROP DATABASE %s" % qn_db_name)
@@ -169,7 +176,7 @@ class DatabaseCreation(BaseDatabaseCreation):
             # if 'it is currently in use' in str(e):
             #     six.print_('Cannot drop database %s because it is in use' % test_database_name)
             # else:
-                six.reraise(*sys.exc_info())
+            six.reraise(*sys.exc_info())
 
     def _test_database_create(self, settings):
         """
@@ -233,7 +240,8 @@ EXTERNAL NAME regex_clr.UserDefinedFunctions.REGEXP_LIKE
 def use_master_connection(creation):
     if IS_DJANGO_16:
         test_db_name = creation._get_test_db_name()
-        # swap in a master connection to allow add/drop of non-existant database
+        # swap in a master connection to allow add/drop of non-existant
+        # database
         old_wrapper = creation.connection
         try:
             creation.connection = creation._create_master_connection()

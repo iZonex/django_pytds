@@ -3,7 +3,7 @@ from __future__ import absolute_import, unicode_literals
 import datetime
 import django
 from django.conf import settings
-from django.db.backends import BaseDatabaseOperations
+from django.db.backends.base.operations import BaseDatabaseOperations
 
 try:
     from django.utils.encoding import smart_text
@@ -67,7 +67,8 @@ class DatabaseOperations(BaseDatabaseOperations):
 
         if self.connection.cast_avg_to_float:
             # Need to cast as float to avoid truncating to an int
-            self._sql_function_overrides['AVG'] = ('AVG', '%(function)s(CAST(%(field)s AS FLOAT))')
+            self._sql_function_overrides['AVG'] = (
+                'AVG', '%(function)s(CAST(%(field)s AS FLOAT))')
 
     def cache_key_culling_sql(self):
         return """
@@ -101,7 +102,8 @@ class DatabaseOperations(BaseDatabaseOperations):
                     sql=out,
                 )
         else:
-            # Only days in the delta, assume underlying datatype can DATEADD with days
+            # Only days in the delta, assume underlying datatype can DATEADD
+            # with days
             out = 'DATEADD(DAY, {0}, {1})'.format(timedelta.days * sign, sql)
         return out
 
@@ -131,7 +133,8 @@ class DatabaseOperations(BaseDatabaseOperations):
             hours, minutes = divmod(total_minutes, 60)
             tzoffset = "%+03d:%02d" % (hours, minutes)
             field_name =\
-                "CAST(SWITCHOFFSET(TODATETIMEOFFSET(%s, '+00:00'), '%s') AS DATETIME2)" % (field_name, tzoffset)
+                "CAST(SWITCHOFFSET(TODATETIMEOFFSET(%s, '+00:00'), '%s') AS DATETIME2)" % (
+                    field_name, tzoffset)
         return field_name
 
     def datetime_extract_sql(self, lookup_type, field_name, tzname):
@@ -155,11 +158,12 @@ class DatabaseOperations(BaseDatabaseOperations):
         a tuple of parameters.
         """
         field_name = self._switch_tz_offset_sql(field_name, tzname)
-        reference_date = '0' # 1900-01-01
+        reference_date = '0'  # 1900-01-01
         if lookup_type in ['minute', 'second']:
             # Prevent DATEDIFF overflow by using the first day of the year as
             # the reference point. Only using for minute and second to avoid any
-            # potential performance hit for queries against very large datasets.
+            # potential performance hit for queries against very large
+            # datasets.
             reference_date = "CONVERT(datetime2, CONVERT(char(4), {field_name}, 112) + '0101', 112)".format(
                 field_name=field_name,
             )
@@ -177,7 +181,8 @@ class DatabaseOperations(BaseDatabaseOperations):
         # IDENT_CURRENT   returns the last identity value generated for a
         #                 specific table in any session and any scope.
         # http://msdn.microsoft.com/en-us/library/ms175098.aspx
-        cursor.execute("SELECT CAST(IDENT_CURRENT(%s) as bigint)", [self.quote_name(table_name)])
+        cursor.execute(
+            "SELECT CAST(IDENT_CURRENT(%s) as bigint)", [self.quote_name(table_name)])
         return cursor.fetchone()[0]
 
     def return_insert_id(self):
@@ -204,16 +209,16 @@ class DatabaseOperations(BaseDatabaseOperations):
         """Prepares a value for use in a LIKE query."""
         return (
             smart_text(x).
-                replace("\\", "\\\\").
-                replace("%", "\%").
-                replace("_", "\_").
-                replace("[", "\[").
-                replace("]", "\]")
+            replace("\\", "\\\\").
+            replace("%", "\%").
+            replace("_", "\_").
+            replace("[", "\[").
+            replace("]", "\]")
         )
 
     def quote_name(self, name):
         if name.startswith('[') and name.endswith(']'):
-            return name # already quoted
+            return name  # already quoted
         return '[%s]' % name
 
     def random_function_sql(self):
@@ -246,7 +251,8 @@ class DatabaseOperations(BaseDatabaseOperations):
             # DBCC CHEKIDENT(table, RESEED, n) behavior.
             seqs = []
             for seq in sequences:
-                cursor.execute("SELECT COUNT(*) FROM %s" % self.quote_name(seq["table"]))
+                cursor.execute("SELECT COUNT(*) FROM %s" %
+                               self.quote_name(seq["table"]))
                 rowcnt = cursor.fetchone()[0]
                 elem = dict()
 
@@ -261,7 +267,8 @@ class DatabaseOperations(BaseDatabaseOperations):
         sql_list = list()
 
         # Turn off constraints.
-        sql_list.append('EXEC sp_MSforeachtable "ALTER TABLE ? NOCHECK CONSTRAINT all"')
+        sql_list.append(
+            'EXEC sp_MSforeachtable "ALTER TABLE ? NOCHECK CONSTRAINT all"')
 
         # Delete data from tables.
         sql_list.extend(
@@ -286,7 +293,8 @@ class DatabaseOperations(BaseDatabaseOperations):
         )
 
         # Turn constraints back on.
-        sql_list.append('EXEC sp_MSforeachtable "ALTER TABLE ? WITH NOCHECK CHECK CONSTRAINT all"')
+        sql_list.append(
+            'EXEC sp_MSforeachtable "ALTER TABLE ? WITH NOCHECK CHECK CONSTRAINT all"')
 
         return sql_list
 
@@ -299,7 +307,8 @@ class DatabaseOperations(BaseDatabaseOperations):
         'datetime' or 'datetime2'.
         """
         if isinstance(value, datetime.datetime):
-            # Strip '-' so SQL Server parses as YYYYMMDD for all languages/formats
+            # Strip '-' so SQL Server parses as YYYYMMDD for all
+            # languages/formats
             val = value.isoformat(b' ').replace('-', '')
             if value.microsecond:
                 # truncate to millisecond so SQL's 'datetime' can parse it
@@ -312,11 +321,13 @@ class DatabaseOperations(BaseDatabaseOperations):
         if value is None or isinstance(value, six.string_types):
             return value
 
-        if timezone.is_aware(value):# and not self.connection.features.supports_timezones:
+        # and not self.connection.features.supports_timezones:
+        if timezone.is_aware(value):
             if getattr(settings, 'USE_TZ', False):
                 value = value.astimezone(timezone.utc).replace(tzinfo=None)
             else:
-                raise ValueError("SQL Server backend does not support timezone-aware datetimes.")
+                raise ValueError(
+                    "SQL Server backend does not support timezone-aware datetimes.")
 
         # SQL Server 2005 doesn't support microseconds
         if self.connection.is_sql2005():
@@ -328,11 +339,13 @@ class DatabaseOperations(BaseDatabaseOperations):
         if value is None or isinstance(value, six.string_types):
             return value
 
-        if timezone.is_aware(value):# and not self.connection.features.supports_timezones:
+        # and not self.connection.features.supports_timezones:
+        if timezone.is_aware(value):
             if getattr(settings, 'USE_TZ', False):
                 value = value.astimezone(timezone.utc).replace(tzinfo=None)
             else:
-                raise ValueError("SQL Server backend does not support timezone-aware datetimes.")
+                raise ValueError(
+                    "SQL Server backend does not support timezone-aware datetimes.")
         return value.isoformat()
 
     def _legacy_value_to_db_time(self, value):
@@ -343,7 +356,8 @@ class DatabaseOperations(BaseDatabaseOperations):
             if not getattr(settings, 'USE_TZ', False) and hasattr(value, 'astimezone'):
                 value = timezone.make_naive(value, timezone.utc)
             else:
-                raise ValueError("SQL Server backend does not support timezone-aware times.")
+                raise ValueError(
+                    "SQL Server backend does not support timezone-aware times.")
 
         # MS SQL 2005 doesn't support microseconds
         # ...but it also doesn't really suport bare times
@@ -364,13 +378,14 @@ class DatabaseOperations(BaseDatabaseOperations):
             if not getattr(settings, 'USE_TZ', False) and hasattr(value, 'astimezone'):
                 value = timezone.make_naive(value, timezone.utc)
             else:
-                raise ValueError("SQL Server backend does not support timezone-aware times.")
+                raise ValueError(
+                    "SQL Server backend does not support timezone-aware times.")
         return value.isoformat()
 
     def value_to_db_decimal(self, value, max_digits, decimal_places):
         if value is None or value == '':
             return None
-        return value # Should be a decimal type (or string)
+        return value  # Should be a decimal type (or string)
 
     def year_lookup_bounds_for_date_field(self, value):
         """
@@ -407,9 +422,11 @@ class DatabaseOperations(BaseDatabaseOperations):
         if field:
             internal_type = field.get_internal_type()
             if internal_type in self._convert_values_map:
-                value = self._convert_values_map[internal_type].to_python(value)
+                value = self._convert_values_map[
+                    internal_type].to_python(value)
             else:
-                value = super(DatabaseOperations, self).convert_values(value, field)
+                value = super(DatabaseOperations, self).convert_values(
+                    value, field)
         return value
 
     def bulk_insert_sql(self, fields, num_values):

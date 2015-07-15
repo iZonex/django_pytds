@@ -1,16 +1,16 @@
 from __future__ import absolute_import, unicode_literals
 
-from django.db.backends import BaseDatabaseIntrospection
+from django.db.backends.base.introspection import BaseDatabaseIntrospection
 from . import ado_consts
 
 try:
     # Added with Django 1.7
-    from django.db.backends import FileInfo
+    from django.db.backends.base import FileInfo
 except ImportError:
     from collections import namedtuple
     # Structure returned by the DB-API cursor.description interface (PEP 249)
     FieldInfo = namedtuple('FieldInfo',
-        'name type_code display_size internal_size precision scale null_ok')
+                           'name type_code display_size internal_size precision scale null_ok')
 
 AUTO_FIELD_MARKER = -1000
 BIG_AUTO_FIELD_MARKER = -1001
@@ -18,6 +18,7 @@ MONEY_FIELD_MARKER = -1002
 
 
 class DatabaseIntrospection(BaseDatabaseIntrospection):
+
     def get_field_type(self, data_type, description):
         field_type = self.data_types_reverse[data_type]
         if (field_type == 'CharField'
@@ -104,14 +105,15 @@ WHERE [TABLE_NAME] LIKE \'%s\'
         When a field is found with an IDENTITY property, it is given a custom field number
         of SQL_AUTOFIELD, which maps to the 'AutoField' value in the DATA_TYPES_REVERSE dict.
         """
-        table_field_type_map = self._get_table_field_type_map(cursor, table_name)
+        table_field_type_map = self._get_table_field_type_map(
+            cursor, table_name)
 
         cursor.execute("SELECT * FROM [%s] where 1=0" % (table_name))
         columns = cursor.description
 
         items = list()
         for column in columns:
-            column = list(column) # Convert tuple to list
+            column = list(column)  # Convert tuple to list
             # fix data type
             data_type, char_length = table_field_type_map.get(column[0])
             column[1] = self._datatype_to_ado_type(data_type)
@@ -123,7 +125,8 @@ WHERE [TABLE_NAME] LIKE \'%s\'
                     column[1] = AUTO_FIELD_MARKER
 
             if column[1] == MONEY_FIELD_MARKER:
-                # force decimal_places=4 to match data type. Cursor description thinks this column is a string
+                # force decimal_places=4 to match data type. Cursor description
+                # thinks this column is a string
                 column[5] = 4
             elif column[1] == ado_consts.adVarWChar and char_length == -1:
                 # treat varchar(max) as text
@@ -218,7 +221,7 @@ where
 
         key_columns = []
         key_columns.extend([(source_column, target_table, target_column)
-            for source_column, target_table, target_column in relations])
+                            for source_column, target_table, target_column in relations])
         return key_columns
 
     def get_indexes(self, cursor, table_name):
@@ -253,7 +256,8 @@ where
         indexes = dict()
 
         for column_name, unique, primary_key in constraints:
-            indexes[column_name.lower()] = {"primary_key": primary_key, "unique": unique}
+            indexes[column_name.lower()] = {
+                "primary_key": primary_key, "unique": unique}
 
         return indexes
 

@@ -4,7 +4,10 @@ from __future__ import absolute_import, unicode_literals
 import warnings
 
 from django.core.exceptions import ImproperlyConfigured, ValidationError
-from django.db.backends import BaseDatabaseWrapper, BaseDatabaseFeatures, BaseDatabaseValidation, BaseDatabaseClient
+from django.db.backends.base.base import BaseDatabaseWrapper
+from django.db.backends.base.features import BaseDatabaseFeatures
+from django.db.backends.base.validation import BaseDatabaseValidation
+from django.db.backends.base.client import BaseDatabaseClient
 from django.db.utils import IntegrityError as DjangoIntegrityError, \
     InterfaceError as DjangoInterfaceError
 from django.utils.functional import cached_property
@@ -110,15 +113,18 @@ def make_connection_string(settings):
     options = settings.get('OPTIONS', {})
 
     if len(db_name) == 0:
-        raise ImproperlyConfigured("You need to specify a DATABASE NAME in your Django settings file.")
+        raise ImproperlyConfigured(
+            "You need to specify a DATABASE NAME in your Django settings file.")
 
     # Connection strings courtesy of:
     # http://www.connectionstrings.com/?carrier=sqlserver
 
-    # If a port is given, force a TCP/IP connection. The host should be an IP address in this case.
+    # If a port is given, force a TCP/IP connection. The host should be an IP
+    # address in this case.
     if db_port:
         if not is_ip_address(db_host):
-            raise ImproperlyConfigured("When using DATABASE PORT, DATABASE HOST must be an IP address.")
+            raise ImproperlyConfigured(
+                "When using DATABASE PORT, DATABASE HOST must be an IP address.")
         try:
             db_port = int(db_port)
         except ValueError:
@@ -188,29 +194,32 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         super(DatabaseWrapper, self).__init__(*args, **kwargs)
 
         try:
-            self.command_timeout = int(self.settings_dict.get('COMMAND_TIMEOUT', 30))
+            self.command_timeout = int(
+                self.settings_dict.get('COMMAND_TIMEOUT', 30))
         except ValueError:
             self.command_timeout = 30
 
         options = self.settings_dict.get('OPTIONS', {})
         try:
-            self.cast_avg_to_float = not bool(options.get('disable_avg_cast', False))
+            self.cast_avg_to_float = not bool(
+                options.get('disable_avg_cast', False))
         except ValueError:
             self.cast_avg_to_float = False
 
         USE_LEGACY_DATE_FIELDS_DEFAULT = False
         try:
-            self.use_legacy_date_fields = bool(options.get('use_legacy_date_fields', USE_LEGACY_DATE_FIELDS_DEFAULT))
+            self.use_legacy_date_fields = bool(
+                options.get('use_legacy_date_fields', USE_LEGACY_DATE_FIELDS_DEFAULT))
         except ValueError:
             self.use_legacy_date_fields = USE_LEGACY_DATE_FIELDS_DEFAULT
 
         if self.use_legacy_date_fields:
-                warnings.warn(
-                    "The `use_legacy_date_fields` setting has been deprecated. "
-                    "The default option value has changed to 'False'. "
-                    "If you need to use the legacy SQL 'datetime' datatype, "
-                    "you must replace them with the provide model field.",
-                    DeprecationWarning)
+            warnings.warn(
+                "The `use_legacy_date_fields` setting has been deprecated. "
+                "The default option value has changed to 'False'. "
+                "If you need to use the legacy SQL 'datetime' datatype, "
+                "you must replace them with the provide model field.",
+                DeprecationWarning)
 
         self.features = DatabaseFeatures(self)
         self.ops = DatabaseOperations(self)
@@ -252,20 +261,21 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         readonly = settings_dict.get('OPTIONS', {}).get('readonly', False)
 
         conn = Database.connect(server=db_host, database=db_name, port=db_port, user=db_user, password=db_password,
-            timeout=self.command_timeout, use_transactions=not autocommit, use_mars=use_mars, readonly=readonly)
+                                timeout=self.command_timeout, use_transactions=not autocommit, use_mars=use_mars, readonly=readonly)
 
         return conn
 
     def init_connection_state(self):
         """Initializes the database connection settings."""
         # if 'mars connection=true' in self.__connection_string.lower():
-        #     # Issue #41 - Cannot use MARS with savepoints
+        # Issue #41 - Cannot use MARS with savepoints
         #     self.features.uses_savepoints = False
         # cache the properties on the connection
         self.features.can_return_id_from_insert = True
         return
-        
-        self.connection.adoConnProperties = dict([(x.Name, x.Value) for x in self.connection.adoConn.Properties])
+
+        self.connection.adoConnProperties = dict(
+            [(x.Name, x.Value) for x in self.connection.adoConn.Properties])
 
         unsupported_sql = False
         if self.is_sql2000(make_connection=False):
@@ -288,7 +298,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
 
     def _set_autocommit(self, value):
         self.connection.autocommit = value          # PyTDS stuff
-        #self.connection.set_autocommit(value)
+        # self.connection.set_autocommit(value)
 
     def __get_dbms_version(self, make_connection=True):
         """
@@ -328,7 +338,8 @@ class DatabaseWrapper(BaseDatabaseWrapper):
             cursor = self.connection.cursor()
         else:
             cursor = self._cursor()
-        cursor.execute('EXEC sp_MSforeachtable "ALTER TABLE ? NOCHECK CONSTRAINT all"')
+        cursor.execute(
+            'EXEC sp_MSforeachtable "ALTER TABLE ? NOCHECK CONSTRAINT all"')
         return True
 
     def enable_constraint_checking(self):
@@ -340,7 +351,8 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         else:
             cursor = self._cursor()
         # don't check the data, just turn them on
-        cursor.execute('EXEC sp_MSforeachtable "ALTER TABLE ? WITH NOCHECK CHECK CONSTRAINT all"')
+        cursor.execute(
+            'EXEC sp_MSforeachtable "ALTER TABLE ? WITH NOCHECK CHECK CONSTRAINT all"')
 
     def check_constraints(self, table_names=None):
         """
@@ -363,9 +375,9 @@ class DatabaseWrapper(BaseDatabaseWrapper):
                 if cursor.description:
                     raise DjangoIntegrityError(cursor.fetchall())
 
-    # # MS SQL Server doesn't support explicit savepoint commits; savepoints are
-    # # implicitly committed with the transaction.
-    # # Ignore them.
+    # MS SQL Server doesn't support explicit savepoint commits; savepoints are
+    # implicitly committed with the transaction.
+    # Ignore them.
     def _savepoint_commit(self, sid):
         try:
             queries_log = self.queries_log   # Django 1.8+

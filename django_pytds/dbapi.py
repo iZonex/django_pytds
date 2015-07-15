@@ -35,7 +35,7 @@ import decimal
 
 from django.conf import settings
 from django.db.utils import (IntegrityError as DjangoIntegrityError,
-    DatabaseError as DjangoDatabaseError)
+                             DatabaseError as DjangoDatabaseError)
 
 from django.utils import six
 from django.utils import timezone
@@ -66,6 +66,7 @@ _milliseconds_per_day = 24 * 60 * 60 * 1000
 
 
 class MultiMap(object):
+
     def __init__(self, mapping, default=None):
         """Defines a mapping with multiple keys per value.
 
@@ -132,6 +133,7 @@ class NotSupportedError(DatabaseError):
 
 
 class FetchFailedError(Error):
+
     """
     Error is used by RawStoredProcedureQuerySet to determine when a fetch
     failed due to a connection being closed or there is no record set
@@ -141,6 +143,7 @@ class FetchFailedError(Error):
 
 
 class _DbType(object):
+
     def __init__(self, valuesTuple):
         self.values = valuesTuple
 
@@ -183,10 +186,11 @@ def connect(connection_string, timeout=30, use_transactions=None):
         return Connection(c, useTransactions)
     except Exception as e:
         raise OperationalError(e,
-            "Error opening connection: {0}".format(
-                mask_connection_string_password(connection_string)
-            )
-        )
+                               "Error opening connection: {0}".format(
+                                   mask_connection_string_password(
+                                       connection_string)
+                               )
+                               )
 
 
 def _use_transactions(c):
@@ -214,15 +218,15 @@ def format_parameters(parameters, show_value=False):
     if show_value:
         desc = [
             "Name: %s, Dir.: %s, Type: %s, Size: %s, Value: \"%s\", Precision: %s, NumericScale: %s" %
-                (p.Name, directions[p.Direction], adTypeNames.get(p.Type, str(p.Type) + ' (unknown type)'),
-                 p.Size, p.Value, p.Precision, p.NumericScale)
+            (p.Name, directions[p.Direction], adTypeNames.get(p.Type, str(p.Type) + ' (unknown type)'),
+             p.Size, p.Value, p.Precision, p.NumericScale)
             for p in parameters
         ]
     else:
         desc = [
             "Name: %s, Dir.: %s, Type: %s, Size: %s, Precision: %s, NumericScale: %s" %
-                (p.Name, directions[p.Direction], adTypeNames.get(p.Type, str(p.Type) + ' (unknown type)'),
-                 p.Size, p.Precision, p.NumericScale)
+            (p.Name, directions[p.Direction], adTypeNames.get(p.Type, str(p.Type) + ' (unknown type)'),
+             p.Size, p.Precision, p.NumericScale)
             for p in parameters
         ]
 
@@ -284,7 +288,8 @@ def _configure_parameter(p, value):
         p.Size = len(s)
 
     else:
-        # For any other type, set the value and let pythoncom do the right thing.
+        # For any other type, set the value and let pythoncom do the right
+        # thing.
         p.Value = value
 
     # Use -1 instead of 0 for empty strings and buffers
@@ -293,26 +298,31 @@ def _configure_parameter(p, value):
 
 
 class Connection(object):
+
     def __init__(self, adoConn, useTransactions=False):
         self.adoConn = adoConn
         self.errorhandler = None
         self.messages = []
         self.adoConn.CursorLocation = defaultCursorLocation
         self.supportsTransactions = useTransactions
-        self.transaction_level = 0 # 0 == Not in a transaction, at the top level
+        # 0 == Not in a transaction, at the top level
+        self.transaction_level = 0
 
         if self.supportsTransactions:
             self.adoConn.IsolationLevel = defaultIsolationLevel
-            self.transaction_level = self.adoConn.BeginTrans() # Disables autocommit per DBPAI
+            # Disables autocommit per DBPAI
+            self.transaction_level = self.adoConn.BeginTrans()
 
     def set_autocommit(self, value):
         if self.supportsTransactions == (not value):
             return
         if self.supportsTransactions:
-            self.transaction_level = self.adoConn.RollbackTrans() # Disables autocommit per DBPAI
+            # Disables autocommit per DBPAI
+            self.transaction_level = self.adoConn.RollbackTrans()
         else:
             self.adoConn.IsolationLevel = defaultIsolationLevel
-            self.transaction_level = self.adoConn.BeginTrans() # Disables autocommit per DBPAI
+            # Disables autocommit per DBPAI
+            self.transaction_level = self.adoConn.BeginTrans()
         self.supportsTransactions = not value
 
     def _raiseConnectionError(self, errorclass, errorvalue):
@@ -354,7 +364,8 @@ class Connection(object):
             if not(self.adoConn.Attributes & adXactCommitRetaining):
                 # If attributes has adXactCommitRetaining it performs retaining commits that is,
                 # calling CommitTrans automatically starts a new transaction. Not all providers support this.
-                # If not, we will have to start a new transaction by this command:
+                # If not, we will have to start a new transaction by this
+                # command:
                 self.adoConn.BeginTrans()
         except Exception as e:
             self._raiseConnectionError(Error, e)
@@ -383,9 +394,11 @@ class Connection(object):
         print('ADO Errors (%i):' % self.adoConn.Errors.Count)
         for e in self.adoConn.Errors:
             print('Description: %s' % e.Description)
-            print('Error: %s %s ' % (e.Number, adoErrors.get(e.Number, "unknown")))
+            print('Error: %s %s ' %
+                  (e.Number, adoErrors.get(e.Number, "unknown")))
             if e.Number == ado_error_TIMEOUT:
-                print('Timeout Error: Try using adodbpi.connect(constr,timeout=Nseconds)')
+                print(
+                    'Timeout Error: Try using adodbpi.connect(constr,timeout=Nseconds)')
             print('Source: %s' % e.Source)
             print('NativeError: %s' % e.NativeError)
             print('SQL State: %s' % e.SQLState)
@@ -422,7 +435,8 @@ class Cursor(object):
     #     (name, type_code, display_size, internal_size, precision, scale, null_ok).
     # This attribute will be None for operations that do not return rows or if the
     # cursor has not had an operation invoked via the executeXXX() method yet.
-    # The type_code can be interpreted by comparing it to the Type Objects specified in the section below.
+    # The type_code can be interpreted by comparing it to the Type Objects
+    # specified in the section below.
     description = None
 
     # This read-only attribute specifies the number of rows that the last executeXXX() produced
@@ -432,7 +446,8 @@ class Cursor(object):
     # NOTE: -- adodbapi returns "-1" by default for all select statements
     rowcount = -1
 
-    # Arraysize specifies the number of rows to fetch at a time with fetchmany().
+    # Arraysize specifies the number of rows to fetch at a time with
+    # fetchmany().
     arraysize = 1
 
     def __init__(self, connection):
@@ -485,7 +500,8 @@ class Cursor(object):
             null_ok = bool(f.Attributes & adFldMayBeNull)
 
             desc.append(
-                (f.Name, f.Type, display_size, f.DefinedSize, f.Precision, f.NumericScale, null_ok)
+                (f.Name, f.Type, display_size, f.DefinedSize,
+                 f.Precision, f.NumericScale, null_ok)
             )
 
         self.description = desc
@@ -529,7 +545,8 @@ class Cursor(object):
             _message = ""
             if hasattr(e, 'args'):
                 _message += str(e.args) + "\n"
-            _message += "Command:\n%s\nParameters:\n%s" % (self.cmd.CommandText, format_parameters(self.cmd.Parameters, True))
+            _message += "Command:\n%s\nParameters:\n%s" % (
+                self.cmd.CommandText, format_parameters(self.cmd.Parameters, True))
             klass = self.connection._suggest_error_class()
             self._raiseCursorError(klass, _message)
 
@@ -565,10 +582,11 @@ class Cursor(object):
         self._execute_command()
 
         p_return_value = self.cmd.Parameters(0)
-        self.return_value = _convert_to_python(p_return_value.Value, p_return_value.Type)
+        self.return_value = _convert_to_python(
+            p_return_value.Value, p_return_value.Type)
 
         return [_convert_to_python(p.Value, p.Type)
-            for p in tuple(self.cmd.Parameters)[1:]]
+                for p in tuple(self.cmd.Parameters)[1:]]
 
     def execute(self, operation, parameters=None):
         """Prepare and execute a database operation (query or command).
@@ -595,7 +613,8 @@ class Cursor(object):
             try:
                 p = self.cmd.CreateParameter('p%i' % i, _ado_type(value))
             except KeyError:
-                _message = 'Failed to map python type "%s" to an ADO type' % (value.__class__.__name__,)
+                _message = 'Failed to map python type "%s" to an ADO type' % (
+                    value.__class__.__name__,)
                 self._raiseCursorError(DataError, _message)
             except:
                 _message = 'Creating Parameter p%i, %s' % (i, _ado_type(value))
@@ -639,13 +658,14 @@ class Cursor(object):
         rows -- Number of rows to fetch, or None (default) to fetch all rows.
         """
         if self.connection is None or self.rs is None:
-            self._raiseCursorError(FetchFailedError, 'Attempting to fetch from a closed connection or empty record set')
+            self._raiseCursorError(
+                FetchFailedError, 'Attempting to fetch from a closed connection or empty record set')
             return
 
         if self.rs.State == adStateClosed or self.rs.BOF or self.rs.EOF:
-            if rows == 1: # fetchone returns None
+            if rows == 1:  # fetchone returns None
                 return None
-            else: # fetchall and fetchmany return empty lists
+            else:  # fetchall and fetchmany return empty lists
                 return list()
 
         if rows:
@@ -656,7 +676,8 @@ class Cursor(object):
         py_columns = list()
         column_types = [column_desc[1] for column_desc in self.description]
         for ado_type, column in zip(column_types, ado_results):
-            py_columns.append([_convert_to_python(cell, ado_type) for cell in column])
+            py_columns.append(
+                [_convert_to_python(cell, ado_type) for cell in column])
 
         return tuple(zip(*py_columns))
 
@@ -668,7 +689,7 @@ class Cursor(object):
         """
         self.messages = list()
         result = self._fetch(1)
-        if result: # return record (not list of records)
+        if result:  # return record (not list of records)
             return result[0]
         return None
 
@@ -732,22 +753,25 @@ def TimestampFromTicks(ticks):
     """Construct an object holding a timestamp value from the given # of ticks."""
     return Timestamp(*time.localtime(ticks)[:6])
 
-adoIntegerTypes = (adInteger, adSmallInt, adTinyInt, adUnsignedInt, adUnsignedSmallInt, adUnsignedTinyInt, adError)
+adoIntegerTypes = (adInteger, adSmallInt, adTinyInt,
+                   adUnsignedInt, adUnsignedSmallInt, adUnsignedTinyInt, adError)
 adoRowIdTypes = (adChapter,)
 adoLongTypes = (adBigInt, adUnsignedBigInt, adFileTime)
 adoExactNumericTypes = (adDecimal, adNumeric, adVarNumeric, adCurrency)
 adoApproximateNumericTypes = (adDouble, adSingle)
-adoStringTypes = (adBSTR, adChar, adLongVarChar, adLongVarWChar, adVarChar, adVarWChar, adWChar, adGUID)
+adoStringTypes = (adBSTR, adChar, adLongVarChar,
+                  adLongVarWChar, adVarChar, adVarWChar, adWChar, adGUID)
 adoBinaryTypes = (adBinary, adLongVarBinary, adVarBinary)
 adoDateTimeTypes = (adDBTime, adDBTimeStamp, adDate, adDBDate)
 
 # Required DBAPI type specifiers
-STRING   = _DbType(adoStringTypes)
-BINARY   = _DbType(adoBinaryTypes)
-NUMBER   = _DbType((adBoolean,) + adoIntegerTypes + adoLongTypes + adoExactNumericTypes + adoApproximateNumericTypes)
+STRING = _DbType(adoStringTypes)
+BINARY = _DbType(adoBinaryTypes)
+NUMBER = _DbType((adBoolean,) + adoIntegerTypes + adoLongTypes +
+                 adoExactNumericTypes + adoApproximateNumericTypes)
 DATETIME = _DbType(adoDateTimeTypes)
 # Not very useful for SQL Server, as normal row ids are usually just integers.
-ROWID    = _DbType(adoRowIdTypes)
+ROWID = _DbType(adoRowIdTypes)
 
 
 # Mapping ADO data types to Python objects.
@@ -785,7 +809,7 @@ def _cvtComDate(comDate):
         fraction_of_day = abs(date_as_float - day_count)
 
         dt = (datetime.datetime.fromordinal(day_count + _ordinal_1899_12_31) +
-            datetime.timedelta(milliseconds=fraction_of_day * _milliseconds_per_day))
+              datetime.timedelta(milliseconds=fraction_of_day * _milliseconds_per_day))
 
     if getattr(settings, 'USE_TZ', False):
         dt = dt.replace(tzinfo=timezone.utc)
